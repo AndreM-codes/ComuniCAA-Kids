@@ -1,7 +1,6 @@
-# Comunica Kids
+# ComuniCAA Kids
 
 Prancha simples de Comunicação Aumentativa e Alternativa (CAA) para crianças não verbais.
-
 Cada botão exibe um símbolo e uma palavra. Ao clicar, o navegador pronuncia a palavra em português.
 
 ## Como usar

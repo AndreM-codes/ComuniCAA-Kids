@@ -2,10 +2,37 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Comunica Kids</title><link rel="stylesheet" href="src/style.css">
+  <title>ComuniCAA Kids</title><link rel="stylesheet" href="src/style.css">
 </head>
 <body>
   <main aria-label="Palavras para comunicar">
+    <header class="page-header">
+      <div>
+        <h1>Minha prancha</h1>
+        <p>Toque em uma imagem para falar.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="copy-link" class="toolbar-button secondary-button">Copiar link</button>
+        <button type="button" id="reset-board" class="toolbar-button reset-button">Voltar ao padrão</button>
+        <button type="button" id="edit-toggle" class="toolbar-button" aria-pressed="false">Editar botões</button>
+      </div>
+    </header>
+    <section id="word-editor" class="editor" aria-labelledby="form-title" hidden>
+      <h2 id="form-title">Adicionar botão</h2>
+      <form id="word-form">
+        <label for="word">Palavra</label>
+        <input id="word" name="word" maxlength="32" required autocomplete="off" placeholder="Ex.: Água">
+        <label for="emoji">Símbolo ou emoji</label>
+        <input id="emoji" name="emoji" maxlength="8" autocomplete="off" placeholder="Ex.: 💧">
+        <div class="form-actions">
+          <button type="submit" class="toolbar-button">Salvar botão</button>
+          <button type="button" id="cancel-edit" class="toolbar-button secondary-button">Cancelar</button>
+        </div>
+      </form>
+    </section>
+    <p class="edit-hint" id="add-hint" hidden>Escolha um botão para editar ou excluir, ou adicione um novo.</p>
+    <p class="link-status" id="link-status" aria-live="polite"></p>
+    <div class="edit-add-row"><button type="button" id="add-word" class="toolbar-button" hidden>+ Adicionar botão</button></div>
     <div class="buttons" role="list" aria-label="Palavras"></div>
   </main>
   <script src="src/app.js"></script>
