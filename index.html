@@ -5,16 +5,20 @@
   <title>ComuniCAA Kids</title><link rel="stylesheet" href="src/style.css">
 </head>
 <body>
+  <button type="button" id="unlock-zone" class="unlock-zone" aria-label="Mostrar botão de desbloqueio"></button>
   <main aria-label="Palavras para comunicar">
     <header class="page-header">
-      <div>
-        <h1>Minha prancha</h1>
+      <div id="header-title" hidden>
+        <h1>Minha Prancha</h1>
         <p>Toque em uma imagem para falar.</p>
       </div>
-      <div class="header-actions">
+      <div class="header-controls">
+        <div class="header-actions" id="header-actions" hidden>
         <button type="button" id="copy-link" class="toolbar-button secondary-button">Copiar link</button>
-        <button type="button" id="reset-board" class="toolbar-button reset-button">Voltar ao padrão</button>
+        <button type="button" id="reset-board" class="toolbar-button reset-button">Restauração padrão</button>
         <button type="button" id="edit-toggle" class="toolbar-button" aria-pressed="false">Editar botões</button>
+        </div>
+        <button type="button" id="admin-lock" class="lock-button" aria-label="Segure para desbloquear os controles" aria-pressed="false" title="Segure para desbloquear os controles" hidden>🔒</button>
       </div>
     </header>
     <section id="word-editor" class="editor" aria-labelledby="form-title" hidden>

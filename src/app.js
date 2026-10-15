@@ -1,3 +1,4 @@
+// Botões Padrão
 const defaultWords = [
   ['Feliz', '😊'], ['Triste', '😢'], ['Bravo', '😠'], ['Medo', '😨'],
   ['Cansado', '🥱'], ['Animado', '🤩'], ['Brincar', '🧸'], ['Comer', '🍎'],
@@ -8,8 +9,8 @@ const defaultWords = [
 ];
 
 const storageKey = 'comunicaa-kids-words';
-const legacyStorageKey = 'comunica-kids-words';
-const urlKey = 'prancha';
+const legacyStorageKey = 'comunicaa-kids-words';
+const urlKey = 'itens';
 
 function isValidWords(value) {
   return Array.isArray(value) && value.every((entry) =>
@@ -73,17 +74,73 @@ const addHint = document.querySelector('#add-hint');
 const copyLinkButton = document.querySelector('#copy-link');
 const resetBoardButton = document.querySelector('#reset-board');
 const linkStatus = document.querySelector('#link-status');
+const headerActions = document.querySelector('#header-actions');
+const adminLock = document.querySelector('#admin-lock');
+const headerTitle = document.querySelector('#header-title');
+const unlockZone = document.querySelector('#unlock-zone');
 let editingIndex = null;
 let editMode = false;
 let statusTimeout;
+let unlockTimeout;
+let lockRevealTimeout;
+let toolsUnlocked = false;
 
 function showStatus(message) {
   window.clearTimeout(statusTimeout);
   linkStatus.textContent = message;
   statusTimeout = window.setTimeout(() => {
     linkStatus.textContent = '';
-  }, 3000);
+  }, 1000);
 }
+
+function setToolsUnlocked(unlocked) {
+  toolsUnlocked = unlocked;
+  headerActions.hidden = !unlocked;
+  headerTitle.hidden = !unlocked;
+  adminLock.hidden = !unlocked;
+  unlockZone.hidden = unlocked;
+  window.clearTimeout(lockRevealTimeout);
+  adminLock.textContent = unlocked ? '🔓' : '🔒';
+  adminLock.setAttribute('aria-pressed', String(unlocked));
+  adminLock.setAttribute('aria-label', unlocked ? 'Controles desbloqueados' : 'Segure para desbloquear os controles');
+  adminLock.title = unlocked ? 'Controles desbloqueados' : 'Segure para desbloquear os controles';
+}
+
+function revealUnlockButton() {
+  if (toolsUnlocked) return;
+  adminLock.hidden = false;
+  window.clearTimeout(lockRevealTimeout);
+  lockRevealTimeout = window.setTimeout(() => {
+    if (!toolsUnlocked) adminLock.hidden = true;
+  }, 4000);
+}
+
+unlockZone.addEventListener('click', revealUnlockButton);
+
+adminLock.addEventListener('pointerdown', () => {
+  window.clearTimeout(unlockTimeout);
+  unlockTimeout = window.setTimeout(() => {
+    if (!toolsUnlocked) {
+      setToolsUnlocked(true);
+      showStatus('Controles desbloqueados.');
+    } else if (!editMode) {
+      setToolsUnlocked(false);
+      showStatus('Controles bloqueados.');
+    }
+  }, 900);
+});
+
+for (const eventName of ['pointerup', 'pointerleave', 'pointercancel']) {
+  adminLock.addEventListener(eventName, () => window.clearTimeout(unlockTimeout));
+}
+
+adminLock.addEventListener('click', (event) => {
+  // Permite que usuários de teclado desbloqueiem com Enter ou Espaço.
+  if (event.detail === 0 && !toolsUnlocked) {
+    setToolsUnlocked(true);
+    showStatus('Controles desbloqueados.');
+  }
+});
 
 function saveWords() {
   try {
@@ -164,6 +221,7 @@ editToggle.addEventListener('click', () => {
   if (!editMode) {
     saveWords();
     showStatus('Edição salva neste navegador e no link da prancha.');
+    setToolsUnlocked(false);
   }
   editToggle.textContent = editMode ? 'Concluir edição' : 'Editar botões';
   editToggle.setAttribute('aria-pressed', String(editMode));
