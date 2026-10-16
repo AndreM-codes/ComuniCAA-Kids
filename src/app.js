@@ -1,3 +1,68 @@
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      await navigator.serviceWorker.register(
+        "./service-worker.js"
+      );
+      console.log("Service Worker registrado!");
+    } catch (error) {
+      console.error(
+        "Erro ao registrar Service Worker:",
+        error
+      );
+    }
+  });
+}
+
+let installPrompt = null;
+
+const installBtn = document.getElementById("installBtn");
+const installMessage = document.getElementById("installMessage");
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+
+  if (installBtn) {
+    installBtn.hidden = false;
+  }
+});
+
+if (installBtn) {
+  installBtn.addEventListener("click", async () => {
+    if (!installPrompt) {
+      if (installMessage) {
+        installMessage.textContent =
+          "Use o menu do navegador para instalar o site.";
+      }
+      return;
+    }
+
+    installPrompt.prompt();
+
+    const choice = await installPrompt.userChoice;
+
+    if (installMessage) {
+      installMessage.textContent =
+        choice.outcome === "accepted"
+          ? "Instalação aceita!"
+          : "Instalação cancelada.";
+    }
+
+    installPrompt = null;
+    installBtn.hidden = true;
+  });
+}
+
+window.addEventListener("appinstalled", () => {
+  if (installBtn) installBtn.hidden = true;
+
+  if (installMessage) {
+    installMessage.textContent =
+      "Aplicativo instalado com sucesso!";
+  }
+});
+
 // Botões Padrão
 const defaultWords = [
   ['Feliz', '😊'], ['Triste', '😢'], ['Bravo', '😠'], ['Medo', '😨'],
@@ -78,6 +143,7 @@ const headerActions = document.querySelector('#header-actions');
 const adminLock = document.querySelector('#admin-lock');
 const headerTitle = document.querySelector('#header-title');
 const unlockZone = document.querySelector('#unlock-zone');
+
 let editingIndex = null;
 let editMode = false;
 let statusTimeout;
@@ -117,17 +183,14 @@ function revealUnlockButton() {
 
 unlockZone.addEventListener('click', revealUnlockButton);
 
-adminLock.addEventListener('pointerdown', () => {
-  window.clearTimeout(unlockTimeout);
-  unlockTimeout = window.setTimeout(() => {
-    if (!toolsUnlocked) {
-      setToolsUnlocked(true);
-      showStatus('Controles desbloqueados.');
-    } else if (!editMode) {
-      setToolsUnlocked(false);
-      showStatus('Controles bloqueados.');
-    }
-  }, 900);
+adminLock.addEventListener('click', () => {
+  if (!toolsUnlocked) {
+    setToolsUnlocked(true);
+    // showStatus('Controles desbloqueados.');
+  } else if (!editMode) {
+    setToolsUnlocked(false);
+    // showStatus('Controles bloqueados.');
+  }
 });
 
 for (const eventName of ['pointerup', 'pointerleave', 'pointercancel']) {
@@ -138,7 +201,7 @@ adminLock.addEventListener('click', (event) => {
   // Permite que usuários de teclado desbloqueiem com Enter ou Espaço.
   if (event.detail === 0 && !toolsUnlocked) {
     setToolsUnlocked(true);
-    showStatus('Controles desbloqueados.');
+    //showStatus('Controles desbloqueados.');
   }
 });
 
@@ -220,7 +283,7 @@ editToggle.addEventListener('click', () => {
   editMode = !editMode;
   if (!editMode) {
     saveWords();
-    showStatus('Edição salva neste navegador e no link da prancha.');
+    // showStatus('Edição salva neste navegador e no link da prancha.');
     setToolsUnlocked(false);
   }
   editToggle.textContent = editMode ? 'Concluir edição' : 'Editar botões';
