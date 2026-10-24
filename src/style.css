@@ -8,6 +8,45 @@
 
 body { margin: 0; padding: 24px; }
 
+.voice-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: #f4f7fb;
+  color: #203047;
+  font-size: 20px;
+  font-weight: 700;
+}
+.voice-loading[hidden] { display: none; }
+.voice-loading__icon { font-size: 48px; }
+.voice-loading__bar {
+  width: 160px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #d5dfec;
+}
+.voice-loading__bar::after {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: #3559a8;
+  content: "";
+  animation: voice-loading 1s ease-in-out infinite alternate;
+}
+@keyframes voice-loading {
+  from { transform: translateX(0); }
+  to { transform: translateX(150%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-loading__bar::after { animation: none; width: 100%; }
+}
+
 main { width: 100%; max-width: 1100px; min-width: 0; margin: 0 auto; }
 
 .page-header {
@@ -131,6 +170,9 @@ h1 { margin: 0 0 6px; font-size: 30px; }
 
 .speak-button span { display: block; margin-bottom: 8px; font-size: 54px; }
 .card-actions { display: flex; gap: 6px; margin-top: 4px; }
+.drag-handle { display: flex; align-items: center; justify-content: center; min-height: 30px; margin: -2px -2px 4px; padding: 4px 8px; border: 2px dashed #9cabc0; border-radius: 8px; color: #536176; font-size: 13px; font-weight: 700; cursor: grab; touch-action: none; user-select: none; }
+.word-card.is-dragging { opacity: .45; }
+.word-card.drop-target { border-color: #3559a8; background: #edf3ff; }
 .small-button { flex: 1; min-height: 38px; padding: 6px 8px; font-size: 14px; }
 
 button:focus-visible, input:focus-visible {

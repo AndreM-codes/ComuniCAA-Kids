@@ -127,6 +127,7 @@ if (!words) {
 }
 
 const buttons = document.querySelector('.buttons');
+const voiceLoading = document.querySelector('#voice-loading');
 const editToggle = document.querySelector('#edit-toggle');
 const editor = document.querySelector('#word-editor');
 const form = document.querySelector('#word-form');
@@ -150,6 +151,7 @@ let statusTimeout;
 let unlockTimeout;
 let lockRevealTimeout;
 let toolsUnlocked = false;
+let draggedIndex = null;
 
 function showStatus(message) {
   window.clearTimeout(statusTimeout);
@@ -223,11 +225,48 @@ function renderWords() {
     const card = document.createElement('div');
     card.className = 'word-card';
 
+    if (editMode) {
+      const dragHandle = document.createElement('span');
+      dragHandle.className = 'drag-handle';
+      dragHandle.textContent = '⠿ Arraste para mover';
+      dragHandle.setAttribute('aria-hidden', 'true');
+      dragHandle.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        draggedIndex = index;
+        card.classList.add('is-dragging');
+        dragHandle.setPointerCapture(event.pointerId);
+      });
+      dragHandle.addEventListener('pointermove', (event) => {
+        if (draggedIndex === null) return;
+        const targetCard = document.elementFromPoint(event.clientX, event.clientY)?.closest('.word-card');
+        buttons.querySelectorAll('.drop-target').forEach((item) => item.classList.remove('drop-target'));
+        if (targetCard && targetCard !== card) targetCard.classList.add('drop-target');
+      });
+      const finishPointerDrag = (event) => {
+        if (draggedIndex === null) return;
+        const fromIndex = draggedIndex;
+        const targetCard = document.elementFromPoint(event.clientX, event.clientY)?.closest('.word-card');
+        const targetIndex = targetCard ? [...buttons.children].indexOf(targetCard) : -1;
+        draggedIndex = null;
+        buttons.querySelectorAll('.is-dragging, .drop-target').forEach((item) => item.classList.remove('is-dragging', 'drop-target'));
+        if (targetIndex < 0 || fromIndex === targetIndex) return;
+        const [movedWord] = words.splice(fromIndex, 1);
+        words.splice(targetIndex, 0, movedWord);
+        saveWords();
+        renderWords();
+      };
+      dragHandle.addEventListener('pointerup', finishPointerDrag);
+      dragHandle.addEventListener('pointercancel', finishPointerDrag);
+      card.append(dragHandle);
+    }
+
     const speakButton = document.createElement('button');
     speakButton.type = 'button';
     speakButton.className = 'speak-button';
     speakButton.dataset.word = word;
     speakButton.setAttribute('aria-label', `Falar ${word}`);
+    
     const symbol = document.createElement('span');
     symbol.setAttribute('aria-hidden', 'true');
     symbol.textContent = emoji;
@@ -237,12 +276,14 @@ function renderWords() {
     if (editMode) {
       const actions = document.createElement('div');
       actions.className = 'card-actions';
+      
       const editButton = document.createElement('button');
       editButton.type = 'button';
       editButton.className = 'small-button';
       editButton.textContent = 'Editar';
       editButton.setAttribute('aria-label', `Editar ${word}`);
       editButton.addEventListener('click', () => openEditor(index));
+      
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
       removeButton.className = 'small-button remove-button';
@@ -255,6 +296,39 @@ function renderWords() {
       });
       actions.append(editButton, removeButton);
       card.append(actions);
+
+      card.draggable = false;
+      card.setAttribute('aria-label', `${word}, posição ${index + 1} de ${words.length}. Arraste para reordenar.`);
+      card.addEventListener('dragstart', (event) => {
+        draggedIndex = index;
+        card.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+      });
+      card.addEventListener('dragend', () => {
+        draggedIndex = null;
+        card.classList.remove('is-dragging');
+        buttons.querySelectorAll('.drop-target').forEach((item) => item.classList.remove('drop-target'));
+      });
+      card.addEventListener('dragover', (event) => {
+        if (draggedIndex === null || draggedIndex === index) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        card.classList.add('drop-target');
+      });
+      card.addEventListener('dragleave', (event) => {
+        if (!card.contains(event.relatedTarget)) card.classList.remove('drop-target');
+      });
+      card.addEventListener('drop', (event) => {
+        event.preventDefault();
+        card.classList.remove('drop-target');
+        const fromIndex = draggedIndex;
+        if (fromIndex === null || fromIndex === index) return;
+        const [movedWord] = words.splice(fromIndex, 1);
+        words.splice(index, 0, movedWord);
+        saveWords();
+        renderWords();
+      });
     }
 
     buttons.append(card);
@@ -346,7 +420,41 @@ buttons.addEventListener('click', (event) => {
   const speech = new SpeechSynthesisUtterance(button.dataset.word);
   speech.lang = 'pt-BR';
   speech.rate = 0.8;
+  if (portugueseVoice) speech.voice = portugueseVoice;
   speechSynthesis.speak(speech);
 });
 
+let portugueseVoice = null;
+
+function prepareVoice() {
+  if (!('speechSynthesis' in window)) {
+    voiceLoading.hidden = true;
+    return;
+  }
+
+  const synth = window.speechSynthesis;
+  let finished = false;
+
+  function finishLoading() {
+    if (finished) return;
+    finished = true;
+    synth.removeEventListener('voiceschanged', loadVoices);
+    voiceLoading.hidden = true;
+  }
+
+  function loadVoices() {
+    const voices = synth.getVoices();
+    portugueseVoice = voices.find((voice) => voice.lang.toLowerCase() === 'pt-br')
+      || voices.find((voice) => voice.lang.toLowerCase().startsWith('pt-'))
+      || null;
+    if (voices.length > 0) finishLoading();
+  }
+
+  synth.addEventListener('voiceschanged', loadVoices);
+  loadVoices();
+  // Alguns navegadores não disparam voiceschanged se nenhuma voz estiver instalada.
+  window.setTimeout(finishLoading, 3000);
+}
+
 renderWords();
+prepareVoice();

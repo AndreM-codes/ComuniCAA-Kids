@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comunicaa-kids-shell-v1';
+const CACHE_NAME = 'comunicaa-kids-shell-v4';
 const APP_SHELL = [
   './index.html',
   './src/style.css',
