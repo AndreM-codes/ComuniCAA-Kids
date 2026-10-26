@@ -151,7 +151,7 @@ let statusTimeout;
 let unlockTimeout;
 let lockRevealTimeout;
 let toolsUnlocked = false;
-let draggedIndex = null;
+let moveIndex = null;
 
 function showStatus(message) {
   window.clearTimeout(statusTimeout);
@@ -226,39 +226,42 @@ function renderWords() {
     card.className = 'word-card';
 
     if (editMode) {
-      const dragHandle = document.createElement('span');
-      dragHandle.className = 'drag-handle';
-      dragHandle.textContent = '⠿ Arraste para mover';
-      dragHandle.setAttribute('aria-hidden', 'true');
-      dragHandle.addEventListener('pointerdown', (event) => {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        draggedIndex = index;
+      const moveButton = document.createElement('button');
+      moveButton.type = 'button';
+      moveButton.className = 'drag-handle';
+
+      if (moveIndex === null) {
+        moveButton.textContent = '↔ Mover';
+        moveButton.setAttribute('aria-label', `Mover ${word}`);
+      } else if (moveIndex === index) {
         card.classList.add('is-dragging');
-        dragHandle.setPointerCapture(event.pointerId);
-      });
-      dragHandle.addEventListener('pointermove', (event) => {
-        if (draggedIndex === null) return;
-        const targetCard = document.elementFromPoint(event.clientX, event.clientY)?.closest('.word-card');
-        buttons.querySelectorAll('.drop-target').forEach((item) => item.classList.remove('drop-target'));
-        if (targetCard && targetCard !== card) targetCard.classList.add('drop-target');
-      });
-      const finishPointerDrag = (event) => {
-        if (draggedIndex === null) return;
-        const fromIndex = draggedIndex;
-        const targetCard = document.elementFromPoint(event.clientX, event.clientY)?.closest('.word-card');
-        const targetIndex = targetCard ? [...buttons.children].indexOf(targetCard) : -1;
-        draggedIndex = null;
-        buttons.querySelectorAll('.is-dragging, .drop-target').forEach((item) => item.classList.remove('is-dragging', 'drop-target'));
-        if (targetIndex < 0 || fromIndex === targetIndex) return;
-        const [movedWord] = words.splice(fromIndex, 1);
-        words.splice(targetIndex, 0, movedWord);
-        saveWords();
+        moveButton.textContent = '✖ Cancelar';
+        moveButton.setAttribute('aria-label', `Cancelar movimento de ${word}`);
+      } else {
+        card.classList.add('drop-target');
+        moveButton.textContent = '⬅ Colocar aqui';
+        moveButton.setAttribute('aria-label', `Colocar à esquerda de ${word}`);
+      }
+
+      moveButton.addEventListener('click', () => {
+        if (moveIndex === null) {
+          // 1º clique: escolhe o botão que será movido
+          moveIndex = index;
+        } else if (moveIndex === index) {
+          // clicou no mesmo botão: cancela
+          moveIndex = null;
+        } else {
+          // 2º clique: coloca à esquerda deste botão
+          const fromIndex = moveIndex;
+          const [movedWord] = words.splice(fromIndex, 1);
+          const targetIndex = fromIndex < index ? index - 1 : index;
+          words.splice(targetIndex, 0, movedWord);
+          moveIndex = null;
+          saveWords();
+        }
         renderWords();
-      };
-      dragHandle.addEventListener('pointerup', finishPointerDrag);
-      dragHandle.addEventListener('pointercancel', finishPointerDrag);
-      card.append(dragHandle);
+      });
+      card.append(moveButton);
     }
 
     const speakButton = document.createElement('button');
@@ -266,7 +269,7 @@ function renderWords() {
     speakButton.className = 'speak-button';
     speakButton.dataset.word = word;
     speakButton.setAttribute('aria-label', `Falar ${word}`);
-    
+
     const symbol = document.createElement('span');
     symbol.setAttribute('aria-hidden', 'true');
     symbol.textContent = emoji;
@@ -276,20 +279,21 @@ function renderWords() {
     if (editMode) {
       const actions = document.createElement('div');
       actions.className = 'card-actions';
-      
+
       const editButton = document.createElement('button');
       editButton.type = 'button';
       editButton.className = 'small-button';
       editButton.textContent = 'Editar';
       editButton.setAttribute('aria-label', `Editar ${word}`);
       editButton.addEventListener('click', () => openEditor(index));
-      
+
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
       removeButton.className = 'small-button remove-button';
       removeButton.textContent = 'Excluir';
       removeButton.setAttribute('aria-label', `Excluir ${word}`);
       removeButton.addEventListener('click', () => {
+        moveIndex = null;
         words.splice(index, 1);
         saveWords();
         renderWords();
@@ -297,38 +301,7 @@ function renderWords() {
       actions.append(editButton, removeButton);
       card.append(actions);
 
-      card.draggable = false;
-      card.setAttribute('aria-label', `${word}, posição ${index + 1} de ${words.length}. Arraste para reordenar.`);
-      card.addEventListener('dragstart', (event) => {
-        draggedIndex = index;
-        card.classList.add('is-dragging');
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', String(index));
-      });
-      card.addEventListener('dragend', () => {
-        draggedIndex = null;
-        card.classList.remove('is-dragging');
-        buttons.querySelectorAll('.drop-target').forEach((item) => item.classList.remove('drop-target'));
-      });
-      card.addEventListener('dragover', (event) => {
-        if (draggedIndex === null || draggedIndex === index) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-        card.classList.add('drop-target');
-      });
-      card.addEventListener('dragleave', (event) => {
-        if (!card.contains(event.relatedTarget)) card.classList.remove('drop-target');
-      });
-      card.addEventListener('drop', (event) => {
-        event.preventDefault();
-        card.classList.remove('drop-target');
-        const fromIndex = draggedIndex;
-        if (fromIndex === null || fromIndex === index) return;
-        const [movedWord] = words.splice(fromIndex, 1);
-        words.splice(index, 0, movedWord);
-        saveWords();
-        renderWords();
-      });
+      card.setAttribute('aria-label', `${word}, posição ${index + 1} de ${words.length}.`);
     }
 
     buttons.append(card);
@@ -355,6 +328,7 @@ function closeEditor() {
 
 editToggle.addEventListener('click', () => {
   editMode = !editMode;
+  moveIndex = null;
   if (!editMode) {
     saveWords();
     // showStatus('Edição salva neste navegador e no link da prancha.');
